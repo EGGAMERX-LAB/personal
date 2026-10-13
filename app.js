@@ -2,14 +2,14 @@
 /* Personal Trainer — desenvolvido por EG Gamer X
    Versão de teste: tudo fica salvo só no aparelho (localStorage). Sem servidor e sem login. */
 
-const VERSAO_APP = '0.4 (teste)';
+const VERSAO_APP = '0.4.1 (teste)';
 const NOME_APP = 'Personal Trainer';
 const CHAVE = 'personal_trainer_v1';
 // Licença: sem código o app fica em modo demonstração (dá para ver tudo, mas não para cadastrar nem editar).
 // O código de liberação só a EG Gamer X gera (pasta Licencas, fora do app). Aqui fica só a chave pública,
 // que confere o código mas não cria códigos.
 const APP_ID = 'personal-trainer';
-const WHATS_EG = '';   // WhatsApp da EG Gamer X (só números, com DDD) para o botão "Pedir código"; vazio = sem botão
+const WHATS_EG = '11988189664';   // WhatsApp da EG Gamer X (só números, com DDD) para o botão "Pedir código"; vazio = sem botão
 const CHAVE_LICENCA = 'personal_trainer_licenca';
 const CHAVE_DICAS = 'personal_trainer_dicas';
 const CHAVE_PUBLICA = '0403c7e165fefce8bdea16943b6f11f9da0be4f73629b258390f94969557b4abb18a2825dc3d5f4c7e8296c243f87924a9393ee3904facebe7ca1011803355df7b';
