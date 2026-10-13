@@ -417,6 +417,8 @@ function pixCopiaECola(valor) {
 
 /* ---------- WhatsApp, área de transferência e arquivos ---------- */
 
+// No APK do Android o app roda dentro de uma "casca" que salva arquivos e imprime por ele (window.Android).
+const nativo = window.Android;
 const NO_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -450,6 +452,11 @@ function copiar(texto, aviso) {
 }
 
 function salvarArquivo(nome, texto, mime, aoTerminar) {
+  if (nativo?.salvarArquivo) {
+    window.__aoSalvar = aoTerminar;
+    nativo.salvarArquivo(nome, texto, mime);
+    return;
+  }
   // iPhone/iPad: abre a folha "Compartilhar" (Salvar em Arquivos, WhatsApp, e-mail...).
   if (NO_IOS) {
     const arq = new File([texto], nome, { type: mime });
@@ -466,6 +473,17 @@ function salvarArquivo(nome, texto, mime, aoTerminar) {
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   aoTerminar?.(true);
+}
+
+window.aoSalvarArquivo = ok => {
+  const cb = window.__aoSalvar;
+  window.__aoSalvar = null;
+  if (!ok) toast('O arquivo não foi salvo');
+  cb?.(ok);
+};
+
+function imprimir(titulo) {
+  if (nativo?.imprimir) nativo.imprimir(titulo); else window.print();
 }
 
 function abrirArquivo(aoLer) {
@@ -682,6 +700,14 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => { if (e.target.dataset.filtro) ir(e.target.value); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalAberto()) fecharModal(); });
+// Chamado pelo botão "voltar" do Android (APK). Devolve false para fechar o app.
+window.appVoltar = () => {
+  if (modalAberto()) { fecharModal(); return true; }
+  const caminho = (location.hash.slice(1) || '/').split('?')[0];
+  if (caminho === '/') return false;
+  location.replace('#' + (rotaPai || '/'));
+  return true;
+};
 
 /* ---------- Início (painel) ---------- */
 
@@ -1359,7 +1385,7 @@ function telaRelatorioAluno(id, params) {
     salvar();
   };
   link();
-  $('#rel-pdf').onclick = () => window.print();
+  $('#rel-pdf').onclick = () => imprimir('Relatório');
 }
 
 /* ---------- Cobranças e pagamentos ---------- */
@@ -1778,7 +1804,7 @@ function telaRelatorios(params) {
     <button class="btn largo nao-imprimir" id="rel-excel">Exportar para Excel</button>
     ${botaoWhats('', textoRelatorio(p, d), 'Compartilhar resumo pelo WhatsApp')}`;
   render('Relatórios', html);
-  $('#rel-pdf').onclick = () => window.print();
+  $('#rel-pdf').onclick = () => imprimir('Relatório');
   $('#rel-excel').onclick = () => salvarArquivo(`relatorio-${tipo}-${p.ini}.csv`, csvRelatorio(d), 'text/csv', ok => { if (ok) toast('Planilha exportada'); });
 }
 
