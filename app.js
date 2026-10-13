@@ -2,7 +2,7 @@
 /* Personal Trainer — desenvolvido por EG Gamer X
    Versão de teste: tudo fica salvo só no aparelho (localStorage). Sem servidor e sem login. */
 
-const VERSAO_APP = '0.3 (teste)';
+const VERSAO_APP = '0.3.1 (teste)';
 const NOME_APP = 'Personal Trainer';
 const CHAVE = 'personal_trainer_v1';
 // Licença: o app funciona HORAS_TESTE horas e depois pede um código de liberação, que só a EG Gamer X gera
@@ -444,7 +444,10 @@ function cabecalhoMarca() {
   return `${c.marcaLogo ? `<img class="rel-logo" src="${c.marcaLogo}" alt="">` : ''}
     ${c.marcaNome ? `<p><b>${esc(c.marcaNome)}</b></p>` : ''}`;
 }
-const RODAPE_RELATORIO = '<p class="rel-rodape">Feito no app Personal Trainer · desenvolvido por EG Gamer X</p>';
+// A marca d'água e o rodapé da EG Gamer X saem em todo relatório, na tela e no PDF.
+const RODAPE_RELATORIO = `<img class="rel-marca-dagua" src="logo.webp" alt="">
+  <div class="rel-rodape"><img src="logo.webp" alt=""><span>Desenvolvido por <b>EG Gamer X</b></span></div>`;
+const ASSINATURA_WHATS = '_Feito no app Personal Trainer · EG Gamer X_';
 
 // Recorta a foto num quadrado pequeno para caber no topo e não pesar no backup.
 function lerLogo(arquivo, aoLer) {
@@ -1207,7 +1210,7 @@ function telaRelatorioAluno(id, params) {
   ].filter(x => x[2].length);
   const texto = recado => [`*Relatório de evolução – ${fmtMes(mes)}*`, `Aluno(a): ${a.nome}`,
     ...partes.flatMap(([t, e, l]) => ['', `${e} *${t}*`, ...l.map(x => `• ${x}`)]),
-    ...(recado ? ['', `💬 ${recado}`] : []), ...(db.config.personal ? ['', db.config.personal] : [])].join('\n');
+    ...(recado ? ['', `💬 ${recado}`] : []), ...(db.config.personal ? ['', db.config.personal] : []), '', ASSINATURA_WHATS].join('\n');
 
   const html = `<div class="mes-nav nao-imprimir">
       <button class="btn-icone" data-ir="#/evolucao/${id}?m=${somaMes(mes, -1)}" aria-label="Mês anterior">‹</button>
@@ -1594,7 +1597,7 @@ function textoRelatorio(p, d) {
     `Previsto: ${fmtBRL(d.previsto)}`, `Recebido: ${fmtBRL(d.recebido)}`, `Despesas: ${fmtBRL(d.despesas)}`,
     `Resultado líquido: ${fmtBRL(d.liquido)}`, `A vencer: ${fmtBRL(d.pendente)}`, `Em atraso: ${fmtBRL(d.atrasado)}`,
     ...lista('Formas de pagamento', d.formas), ...lista('Quem pagou', d.pagantes), ...lista('Em atraso', d.inadimplentes),
-    ...(db.config.personal ? ['', db.config.personal] : [])].join('\n');
+    ...(db.config.personal ? ['', db.config.personal] : []), '', ASSINATURA_WHATS].join('\n');
 }
 
 // Planilha para o Excel: ponto e vírgula como separador e vírgula decimal, do jeito que o Excel em português abre.

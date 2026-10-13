@@ -50,7 +50,16 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 #topo .marca { width: 38px; height: 38px; border-radius: 50%; margin-right: 6px; flex: none; object-fit: cover; cursor: pointer; border: 1px solid var(--pri); }
 img.avatar { object-fit: cover; padding: 0; }
 .rel-logo { display: block; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin: 0 auto 6px; }
-.rel-rodape { margin: 16px 0 0; padding-top: 8px; border-top: 1px solid var(--borda); font-size: 11px; color: var(--sub); text-align: center; }
+.rel-rodape {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 18px 0 0; padding-top: 10px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--sub);
+}
+.rel-rodape img { width: 34px; height: 34px; border-radius: 50%; }
+.relatorio { position: relative; overflow: hidden; }
+.rel-marca-dagua {
+  position: absolute; top: 50%; left: 50%; width: 72%; max-width: 340px; transform: translate(-50%, -50%);
+  border-radius: 50%; opacity: .07; pointer-events: none;
+}
 #topo h1 {
   flex: 1; font-size: 18px; font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .04em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
