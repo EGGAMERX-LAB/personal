@@ -1,6 +1,6 @@
 /* Personal Trainer — guarda o app no aparelho para funcionar sem internet (iPhone / Android / navegador).
    Mude o nome do cache a cada versão para os aparelhos baixarem os arquivos novos. */
-const CACHE = 'personal-trainer-v0.3.1';
+const CACHE = 'personal-trainer-v0.4';
 const ARQUIVOS = ['./', 'index.html', 'style.css', 'qr.js', 'app.js', 'logo.webp', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

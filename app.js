@@ -2,14 +2,16 @@
 /* Personal Trainer — desenvolvido por EG Gamer X
    Versão de teste: tudo fica salvo só no aparelho (localStorage). Sem servidor e sem login. */
 
-const VERSAO_APP = '0.3.1 (teste)';
+const VERSAO_APP = '0.4 (teste)';
 const NOME_APP = 'Personal Trainer';
 const CHAVE = 'personal_trainer_v1';
-// Licença: o app funciona HORAS_TESTE horas e depois pede um código de liberação, que só a EG Gamer X gera
-// (pasta Licencas, fora do app). Aqui fica só a chave pública, que confere o código mas não cria códigos.
+// Licença: sem código o app fica em modo demonstração (dá para ver tudo, mas não para cadastrar nem editar).
+// O código de liberação só a EG Gamer X gera (pasta Licencas, fora do app). Aqui fica só a chave pública,
+// que confere o código mas não cria códigos.
 const APP_ID = 'personal-trainer';
-const HORAS_TESTE = 1;   // 1 hora só para testar o bloqueio; para 7 dias de teste, trocar por 7 * 24
+const WHATS_EG = '';   // WhatsApp da EG Gamer X (só números, com DDD) para o botão "Pedir código"; vazio = sem botão
 const CHAVE_LICENCA = 'personal_trainer_licenca';
+const CHAVE_DICAS = 'personal_trainer_dicas';
 const CHAVE_PUBLICA = '0403c7e165fefce8bdea16943b6f11f9da0be4f73629b258390f94969557b4abb18a2825dc3d5f4c7e8296c243f87924a9393ee3904facebe7ca1011803355df7b';
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const MESES_CURTOS = MESES.map(m => m.slice(0, 3));
@@ -30,6 +32,34 @@ const TIPOS_PERIODO = { semana: 'Semanal', mes: 'Mensal', ano: 'Anual' };
 const DIAS_PARADO = 28;   // sem aumento de carga há mais que isso = "não está evoluindo"
 const DIAS_PERTO = 3;     // cobrança que vence em até 3 dias = "próxima do vencimento"
 const MSG_PADRAO = 'Olá, {nome}! Segue a cobrança: {referencia}, no valor de {valor}, com vencimento em {vencimento}.';
+
+// Fichas prontas para começar: [exercício, séries, repetições, descanso]. O personal ajusta e põe as cargas.
+const MODELOS_FICHA = [
+  { nome: 'Adaptação – corpo todo', nivel: 'Iniciante', obs: 'Primeiras semanas. Carga leve, foco em aprender o movimento.', exercicios: [
+    ['Leg press', '3', '12-15', '60s'], ['Cadeira extensora', '3', '12-15', '60s'], ['Mesa flexora', '3', '12-15', '60s'],
+    ['Supino na máquina', '3', '12-15', '60s'], ['Puxada frontal', '3', '12-15', '60s'], ['Desenvolvimento com halteres', '3', '12', '60s'],
+    ['Rosca direta', '2', '12', '45s'], ['Tríceps na polia', '2', '12', '45s'], ['Prancha', '3', '20-30s', '45s']] },
+  { nome: 'Treino A – Peito, ombro e tríceps', nivel: 'Intermediário', obs: 'Aquecer ombros antes de começar.', exercicios: [
+    ['Supino reto', '4', '8-10', '90s'], ['Supino inclinado com halteres', '3', '10', '75s'], ['Crucifixo', '3', '12', '60s'],
+    ['Desenvolvimento com halteres', '3', '10', '75s'], ['Elevação lateral', '3', '12-15', '45s'],
+    ['Tríceps na polia', '3', '12', '45s'], ['Tríceps testa', '3', '10', '60s']] },
+  { nome: 'Treino B – Costas e bíceps', nivel: 'Intermediário', obs: '', exercicios: [
+    ['Puxada frontal', '4', '8-10', '90s'], ['Remada baixa', '3', '10', '75s'], ['Remada curvada', '3', '10', '75s'],
+    ['Pulldown', '3', '12', '60s'], ['Rosca direta', '3', '10', '60s'], ['Rosca alternada', '3', '12', '45s'],
+    ['Rosca martelo', '3', '12', '45s']] },
+  { nome: 'Treino C – Pernas e glúteos', nivel: 'Intermediário', obs: 'Aquecer 10 min antes.', exercicios: [
+    ['Agachamento livre', '4', '8-10', '90s'], ['Leg press', '3', '10-12', '90s'], ['Cadeira extensora', '3', '12', '60s'],
+    ['Mesa flexora', '3', '12', '60s'], ['Stiff', '3', '10', '75s'], ['Elevação pélvica', '3', '12', '60s'],
+    ['Panturrilha em pé', '4', '15', '45s']] },
+  { nome: 'Emagrecimento – circuito', nivel: 'Iniciante', obs: 'Fazer em circuito, com pouco descanso entre os exercícios. 3 voltas.', exercicios: [
+    ['Agachamento com peso do corpo', '3', '15', '20s'], ['Flexão de braço (pode ser no joelho)', '3', '10-12', '20s'],
+    ['Remada com elástico', '3', '15', '20s'], ['Afundo alternado', '3', '12 cada perna', '20s'],
+    ['Polichinelo', '3', '40s', '20s'], ['Abdominal', '3', '15-20', '20s'], ['Prancha', '3', '30s', '60s']] },
+  { nome: 'Funcional em casa – sem aparelhos', nivel: 'Iniciante', obs: 'Só com o peso do corpo.', exercicios: [
+    ['Agachamento', '3', '15', '45s'], ['Flexão de braço', '3', '8-12', '45s'], ['Ponte de glúteo', '3', '15', '45s'],
+    ['Afundo', '3', '10 cada perna', '45s'], ['Prancha', '3', '30s', '45s'], ['Abdominal bicicleta', '3', '20', '45s'],
+    ['Mobilidade de quadril e ombro', '1', '5 min', '']] },
+];
 
 const IC = {
   haltere: '<svg viewBox="0 0 24 24"><path d="M6.5 6v12M3.5 9v6M17.5 6v12M20.5 9v6M6.5 12h11"/></svg>',
@@ -143,17 +173,17 @@ function soma(lista, fn = x => x.valor) { return arred(lista.reduce((s, x) => s 
 function semAcento(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\x20-\x7e]/g, ''); }
 function linhas(texto) { return texto.split('\n').map(s => s.trim()).filter(Boolean); }
 
-/* ---------- Licença de uso (período de teste + código de liberação) ---------- */
+/* ---------- Licença de uso (modo demonstração + código de liberação) ---------- */
 
-// Fica guardada separada dos dados: restaurar backup ou apagar os dados não reinicia o período de teste.
+// Fica guardada separada dos dados: restaurar backup ou apagar os dados não mexe na licença.
 function carregarLicenca() {
   let l = null;
   try { l = JSON.parse(localStorage.getItem(CHAVE_LICENCA)); } catch (e) { console.error(e); }
-  // "ate" e "visto" são momentos exatos (milissegundos), para o teste poder ser contado em horas.
+  // "ate" e "visto" são momentos exatos (milissegundos).
   if (!l?.id || typeof l.ate !== 'number') {
     const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const s = [...crypto.getRandomValues(new Uint8Array(8))].map(b => letras[b % 32]).join('');
-    l = { id: `${s.slice(0, 4)}-${s.slice(4)}`, ate: Date.now() + HORAS_TESTE * 36e5, visto: Date.now(), liberado: false };
+    l = { id: `${s.slice(0, 4)}-${s.slice(4)}`, ate: 0, visto: Date.now(), liberado: false };
     localStorage.setItem(CHAVE_LICENCA, JSON.stringify(l));
   }
   return l;
@@ -161,19 +191,22 @@ function carregarLicenca() {
 let licenca = carregarLicenca();
 function salvarLicenca() { localStorage.setItem(CHAVE_LICENCA, JSON.stringify(licenca)); }
 
-// 'ok', 'vencida' ou 'relogio' (o relógio do celular foi voltado para ganhar mais tempo; tolera 10 minutos).
+// 'ok' (código válido), 'demo' (nunca liberado), 'vencida' ou 'relogio' (o relógio do celular foi voltado
+// para ganhar mais tempo; tolera 10 minutos).
 function situacaoLicenca() {
   const agora = Date.now();
   if (agora < licenca.visto - 6e5) return 'relogio';
   if (agora > licenca.visto) { licenca.visto = agora; salvarLicenca(); }
+  if (!licenca.liberado) return 'demo';
   return agora > licenca.ate ? 'vencida' : 'ok';
 }
+const podeEditar = () => situacaoLicenca() === 'ok';
 function fmtMomento(ms) {
   const d = new Date(ms);
   return `${fmtData(isoLocal(d))} às ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
-// O código libera até o fim do dia que vem nele; o teste acaba na hora exata.
-function fimDaLicenca() { return licenca.liberado ? fmtData(isoLocal(new Date(licenca.ate - 1))) : fmtMomento(licenca.ate); }
+// O código libera até o fim do dia que vem nele.
+function fimDaLicenca() { return fmtData(isoLocal(new Date(licenca.ate - 1))); }
 function tempoDeLicenca() {
   const min = Math.max(0, Math.ceil((licenca.ate - Date.now()) / 6e4));
   if (min < 60) return plural(min, 'minuto', 'minutos');
@@ -217,27 +250,49 @@ function ligarCaixaCodigo(raiz) {
   $('[data-lic=copiar]', raiz).onclick = () => copiar(licenca.id, 'Código do aparelho copiado');
   $('[data-lic=liberar]', raiz).onclick = async () => {
     const erro = await aplicarCodigo($('[data-lic=texto]', raiz).value);
-    toast(erro || `App liberado até ${fimDaLicenca()}`);
-    if (!erro) rotear();
+    if (erro) { toast(erro); return; }
+    // Quem estava vendo a demonstração começa com o app limpo.
+    if (db.exemplo) limparExemplos();
+    toast(`App liberado até ${fimDaLicenca()}`);
+    ir('#/');
   };
 }
+function botaoPedirCodigo() {
+  if (!WHATS_EG) return '';
+  const texto = `Olá! Quero liberar o app ${NOME_APP}.\nCódigo do aparelho: ${licenca.id}`;
+  return botaoWhats(WHATS_EG, texto, 'Pedir código pelo WhatsApp');
+}
 
-// Tela que cobre o app quando o período acabou. Os dados continuam guardados e dá para exportar o backup.
-function conferirLicenca() {
+// Chamado antes de qualquer cadastro ou alteração. Sem licença válida, mostra o pedido de código e devolve true.
+function semLicenca() {
   const s = situacaoLicenca();
+  if (s === 'ok') return false;
+  const m = abrirModal(s === 'vencida' ? 'Sua licença venceu' : 'Versão de demonstração',
+    `<p>${s === 'vencida'
+      ? `Sua licença terminou em ${fimDaLicenca()}. Seus dados continuam guardados e você pode ver tudo, mas para cadastrar ou alterar é preciso renovar.`
+      : 'Você pode ver o app inteiro com os dados de exemplo. Para cadastrar seus alunos, treinos e pagamentos, é preciso liberar o app.'}</p>
+    <p>Envie o código do aparelho à <b>EG Gamer X</b> e cole aqui o código de liberação que você receber.</p>
+    ${botaoPedirCodigo()}${caixaCodigo()}`, [{ texto: 'Fechar' }]);
+  ligarCaixaCodigo(m);
+  return true;
+}
+
+// Sem licença e sem nenhum dado: carrega os exemplos para a pessoa ver o app funcionando.
+function prepararDemonstracao() {
+  if (!licenca.liberado && !db.alunos.length) montarExemplo();
+}
+
+// O relógio voltado é o único caso em que o app fica coberto; nos outros ele abre em modo de leitura.
+function conferirLicenca() {
   $('#bloqueio')?.remove();
-  if (s === 'ok') return;
+  if (situacaoLicenca() !== 'relogio') return;
   const t = document.createElement('div');
   t.id = 'bloqueio';
   t.innerHTML = `<div><img class="logo-sobre" src="logo.webp" alt="">
-    <h2>${s === 'relogio' ? 'Data do celular errada' : licenca.liberado ? 'Sua licença venceu' : 'Período de teste encerrado'}</h2>
-    <p>${s === 'relogio' ? `O relógio do celular está antes de ${fmtMomento(licenca.visto)}. Acerte a data e a hora para continuar.`
-      : `O acesso ao ${NOME_APP} terminou em ${fimDaLicenca()}. Seus dados continuam guardados neste aparelho.
-         Para continuar, peça um código de liberação à EG Gamer X informando o código do aparelho.`}</p>
-    ${s === 'relogio' ? '' : caixaCodigo()}
+    <h2>Data do celular errada</h2>
+    <p>O relógio do celular está antes de ${fmtMomento(licenca.visto)}. Acerte a data e a hora para continuar.</p>
     <button class="btn largo" id="bloq-backup">Exportar backup dos meus dados</button></div>`;
   document.body.appendChild(t);
-  if (s !== 'relogio') ligarCaixaCodigo(t);
   $('#bloq-backup').onclick = () => exportarBackup();
 }
 
@@ -464,6 +519,7 @@ function lerLogo(arquivo, aoLer) {
 }
 
 function modalMarca() {
+  if (semLicenca()) return;
   const c = db.config;
   let logo = c.marcaLogo;
   const m = abrirModal('Sua marca', `<img class="logo-sobre" id="marca-previa" src="${logo || 'logo.webp'}" alt="">
@@ -587,6 +643,7 @@ const ROTAS = [
 function rotear() {
   if (modalAberto()) fecharModal();
   conferirLicenca();
+  prepararDemonstracao();
   garantirCobrancas();
   const [caminho, qs] = (location.hash.slice(1) || '/').split('?');
   const params = new URLSearchParams(qs || '');
@@ -660,6 +717,27 @@ function avisoInstalar() {
   </div>`;
 }
 
+// Explicação curta que aparece só até a pessoa tocar em "Entendi" (fica guardada fora dos dados do app).
+function dicasVistas() { try { return JSON.parse(localStorage.getItem(CHAVE_DICAS)) || {}; } catch { return {}; } }
+function dica(chave, texto) {
+  if (dicasVistas()[chave]) return '';
+  return `<div class="cartao dica nao-imprimir"><p>${texto}</p><button class="btn" data-dica="${chave}">Entendi</button></div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-dica]');
+  if (!b) return;
+  localStorage.setItem(CHAVE_DICAS, JSON.stringify({ ...dicasVistas(), [b.dataset.dica]: true }));
+  b.closest('.dica').remove();
+});
+
+// Tira os exemplos e deixa o app vazio, mantendo o que o personal já preencheu em "Mais".
+function limparExemplos() {
+  const cfg = db.config;
+  db = bancoVazio();
+  db.config = cfg;
+  salvar();
+}
+
 function telaInicio() {
   const h = hoje(), c = db.config;
   const hora = new Date().getHours();
@@ -669,16 +747,29 @@ function telaInicio() {
     <p class="saudacao">${saudacao}${nome}!</p>
     <p class="data-hoje">${SEMANA[new Date().getDay()]}, ${fmtData(h)}</p>
   </section>${avisoInstalar()}`;
-  if (licenca.ate - Date.now() <= 3 * 864e5) {
-    html += `<div class="cartao destaque"><p><b>${licenca.liberado ? 'Sua licença' : 'Seu período de teste'} termina
-      em ${tempoDeLicenca()}</b> (${fimDaLicenca()}). Peça o código de liberação para continuar usando.</p>
+  const lic = situacaoLicenca();
+  if (lic === 'demo') {
+    html += `<div class="cartao destaque"><p><b>Você está na demonstração.</b> Os alunos e valores são exemplos, para você
+      conhecer o app. Para cadastrar os seus, é preciso liberar o app.</p>
+      <button class="btn primario" id="btn-liberar">Liberar o app</button></div>`;
+  } else if (lic === 'vencida') {
+    html += `<div class="cartao atencao"><p><b>Sua licença venceu em ${fimDaLicenca()}.</b> Você continua vendo seus dados,
+      mas para cadastrar ou alterar é preciso renovar.</p>
+      <button class="btn primario" id="btn-liberar">Renovar</button></div>`;
+  } else if (licenca.ate - Date.now() <= 3 * 864e5) {
+    html += `<div class="cartao destaque"><p><b>Sua licença termina em ${tempoDeLicenca()}</b> (${fimDaLicenca()}).
+      Peça o código de liberação para continuar usando.</p>
       <button class="btn" data-ir="#/config">Ver código do aparelho</button></div>`;
   }
-  const ligarInstalar = () => $('#btn-instalar')?.addEventListener('click', () => {
-    pedidoInstalar.prompt();
-    pedidoInstalar = null;
-    rotear();
-  });
+  html += dica('inicio', 'Aqui é o seu painel: quanto entrou, quanto falta receber e quem está atrasado. Os quatro botões redondos são os atalhos do dia a dia.');
+  const ligarInstalar = () => {
+    $('#btn-liberar')?.addEventListener('click', semLicenca);
+    $('#btn-instalar')?.addEventListener('click', () => {
+      pedidoInstalar.prompt();
+      pedidoInstalar = null;
+      rotear();
+    });
+  };
 
   if (!db.alunos.length) {
     html += `<div class="cartao destaque">
@@ -696,7 +787,7 @@ function telaInicio() {
     return;
   }
 
-  if (db.exemplo) {
+  if (db.exemplo && lic === 'ok') {
     html += `<div class="cartao destaque"><p><b>Você está vendo dados de exemplo.</b> Os alunos e valores são fictícios, só para demonstração.</p>
       <button class="btn" id="apagar-exemplo">Apagar exemplos e começar</button></div>`;
   }
@@ -733,12 +824,12 @@ function telaInicio() {
       <a class="atalho" href="#/relatorios"><span class="ic">${IC.grafico}</span>Relatórios</a>
     </div>`;
 
-  if (!pixPronto()) {
+  if (lic === 'ok' && !pixPronto()) {
     html += `<div class="cartao destaque" style="margin-top:16px">
       <p><b>Cadastre sua chave Pix</b> para gerar o QR Code e o Pix copia e cola das cobranças.</p>
       <button class="btn primario" data-ir="#/config">Cadastrar chave Pix</button></div>`;
   }
-  if (!db.exemplo && (!c.ultimoBackup || somaDias(c.ultimoBackup, 7) < h)) {
+  if (lic === 'ok' && !db.exemplo && (!c.ultimoBackup || somaDias(c.ultimoBackup, 7) < h)) {
     html += `<div class="cartao destaque" style="margin-top:16px">
       <p><b>Faça um backup.</b> Seus dados ficam só neste celular.
       ${c.ultimoBackup ? `Último backup em ${fmtData(c.ultimoBackup)}.` : 'Você ainda não fez nenhum backup.'}</p>
@@ -769,10 +860,7 @@ function telaInicio() {
   $('#at-aluno').onclick = () => modalAluno();
   $('#at-despesa').onclick = () => modalDespesa();
   $('#apagar-exemplo')?.addEventListener('click', () => confirmar('Apagar todos os dados de exemplo? Sua chave Pix e seus dados em "Mais" continuam.', 'Apagar exemplos', () => {
-    const cfg = db.config;
-    db = bancoVazio();
-    db.config = cfg;
-    salvar();
+    limparExemplos();
     ir('#/');
   }));
   ligarCobrancas($('#tela'));
@@ -790,7 +878,8 @@ function telaAlunos(params) {
   const st = params.get('st') || 'ativo';
   const FILTROS = { ativo: 'Ativos', atraso: 'Em atraso', inativo: 'Inativos', cancelado: 'Cancelados', todos: 'Todos' };
   const lista = db.alunos.filter(a => st === 'todos' || (st === 'atraso' ? a.status === 'ativo' && emAtraso(a) : a.status === st)).sort(porNome);
-  let html = `<button class="btn primario largo" id="novo-aluno">+ Novo aluno</button>
+  let html = dica('alunos', 'Cada aluno tem quatro partes: <b>Treino</b>, <b>Observações</b> (lesões e restrições), <b>Evolução</b> e <b>Financeiro</b>. Toque num aluno para abrir.')
+    + `<button class="btn primario largo" id="novo-aluno">+ Novo aluno</button>
     ${campo('Procurar', 'busca', '', 'search', 'placeholder="Nome do aluno" autocomplete="off"')}
     <div class="chips">${Object.entries(FILTROS).map(([k, t]) =>
       `<a class="chip ${k === st ? 'on' : ''}" href="${comFiltro('/alunos', params, { st: k === 'ativo' ? '' : k })}">${t}</a>`).join('')}</div>`;
@@ -812,6 +901,7 @@ function telaAlunos(params) {
 }
 
 function modalAluno(a) {
+  if (semLicenca()) return;
   const p = a?.plano || {};
   const servicos = [...db.config.servicos];
   if (a?.servico && !servicos.includes(a.servico)) servicos.push(a.servico);
@@ -894,7 +984,7 @@ function telaAluno(id, aba = 'treino') {
       <div class="cresce"><h2>${esc(a.nome)}</h2>
         <div class="sub">${[a.servico, a.objetivo, a.horarios].filter(Boolean).map(esc).join(' · ') || 'Toque no lápis para completar o cadastro'}</div>
         ${seloAluno(a)}</div>
-    </div><div id="aba"></div>`;
+    </div>${dica('aluno', 'Troque de parte nas abas lá em cima. O lápis no canto edita o cadastro, o plano e o valor do aluno.')}<div id="aba"></div>`;
   render(a.nome, html, {
     voltar: '/alunos',
     acao: `<button class="btn-icone" id="editar-aluno" aria-label="Editar aluno">✎</button>`,
@@ -923,15 +1013,26 @@ function abaTreino(a, alvo) {
 }
 
 function modalFicha(a, f) {
+  if (semLicenca()) return;
   const letra = String.fromCharCode(65 + fichasDe(a.id).length);
-  const corpo = `${campo('Nome da ficha', 'nome', f?.nome ?? `Treino ${letra}`)}
+  const corpo = `${f ? '' : campoSelect('Começar de', 'modelo', [['', 'Ficha em branco'], ...MODELOS_FICHA.map((x, i) => [i, 'Modelo: ' + x.nome])])}
+    ${campo('Nome da ficha', 'nome', f?.nome ?? `Treino ${letra}`)}
     ${campoSelect('Nível de dificuldade', 'nivel', NIVEIS_FICHA, f?.nivel)}
     ${campoTexto('Anotações da ficha', 'obs', f?.obs, 2, 'placeholder="Ex.: peito e tríceps, aquecer 10 min antes"')}`;
   const botoes = [{ texto: 'Cancelar' }, {
     texto: 'Salvar', classe: 'primario', acao: m => {
       const d = lerForm(m);
       if (!d.nome) { toast('Digite o nome da ficha'); return false; }
-      if (!f) { f = { id: novoId(), alunoId: a.id, exercicios: [] }; db.fichas.push(f); }
+      const modelo = MODELOS_FICHA[d.modelo];
+      delete d.modelo;
+      if (!f) {
+        f = { id: novoId(), alunoId: a.id, exercicios: [] };
+        if (modelo) {
+          f.exercicios = modelo.exercicios.map(([nome, series, reps, descanso]) =>
+            ({ id: novoId(), nome, series, reps, carga: null, descanso, dificuldade: '', obs: '' }));
+        }
+        db.fichas.push(f);
+      }
       Object.assign(f, d);
       salvar();
       ir(`#/ficha/${f.id}`);
@@ -944,7 +1045,15 @@ function modalFicha(a, f) {
       ir(`#/aluno/${a.id}/treino`);
     }),
   });
-  abrirModal(f ? 'Editar ficha' : 'Nova ficha de treino', corpo, botoes);
+  const m = abrirModal(f ? 'Editar ficha' : 'Nova ficha de treino', corpo, botoes);
+  // Escolher um modelo já preenche nome, nível e anotações; os exercícios entram ao salvar.
+  $('[name=modelo]', m)?.addEventListener('change', e => {
+    const x = MODELOS_FICHA[e.target.value];
+    if (!x) return;
+    $('[name=nome]', m).value = x.nome;
+    $('[name=nivel]', m).value = x.nivel;
+    $('[name=obs]', m).value = x.obs;
+  });
 }
 
 function textoFicha(f, a) {
@@ -983,6 +1092,7 @@ function telaFicha(id) {
 }
 
 function modalExercicio(f, e) {
+  if (semLicenca()) return;
   const corpo = `${campo('Exercício', 'nome', e?.nome, 'text', 'placeholder="Ex.: Supino reto" autocomplete="off"')}
     <div class="tres">
       ${campo('Séries', 'series', e?.series, 'text', 'inputmode="numeric"')}
@@ -1045,6 +1155,7 @@ function abaObs(a, alvo) {
 }
 
 function modalObs(a, o) {
+  if (semLicenca()) return;
   const corpo = `<div class="duas">
       ${campoSelect('Tipo', 'tipo', TIPOS_OBS, o?.tipo)}
       ${campo('Data', 'data', o?.data ?? hoje(), 'date')}
@@ -1122,7 +1233,7 @@ function abaEvolucao(a, alvo) {
   };
   const inicio = cargas.filter(g => g.estado === 'inicio'), outras = regs.filter(r => r.tipo === 'observacao');
   alvo.innerHTML = `<button class="btn primario largo" id="novo-reg">+ Anotar evolução</button>
-    <a class="btn largo" href="#/evolucao/${a.id}">Relatório do mês para o aluno</a>`
+    <a class="btn largo" href="#/evolucao/${a.id}">Relatório de evolução para o aluno</a>`
     + bloco('Está melhorando', 'bom', 'melhora', 'melhora', 'Nada registrado ainda. Aumente a carga de um exercício na ficha ou anote uma melhora.')
     + bloco('Não está melhorando', 'ruim', 'parado', 'parado', 'Nenhum ponto parado.')
     + (inicio.length ? `<h3 class="secao">Cargas recentes</h3><div class="lista">${inicio.map(linhaCarga).join('')}</div>` : '')
@@ -1139,6 +1250,7 @@ function modalHistorico(g) {
       <button class="btn perigo-texto" data-apagar="${c.id}">Apagar</button></div>`).join('')}</div>
     <p class="legenda">Para registrar uma carga nova, mude a carga do exercício na ficha de treino.</p>`, [{ texto: 'Fechar' }]);
   $$('[data-apagar]', m).forEach(b => b.onclick = () => {
+    if (semLicenca()) return;
     db.cargas = db.cargas.filter(c => c.id !== b.dataset.apagar);
     salvar();
     rotear();
@@ -1146,6 +1258,7 @@ function modalHistorico(g) {
 }
 
 function modalRegistro(a, r) {
+  if (semLicenca()) return;
   const corpo = `<div class="duas">
       ${campoSelect('Como está', 'tipo', Object.entries(TIPOS_REGISTRO), r?.tipo)}
       ${campo('Data', 'data', r?.data ?? hoje(), 'date')}
@@ -1191,8 +1304,12 @@ function evolucaoNoMes(alunoId, p) {
 function telaRelatorioAluno(id, params) {
   const a = aluno(id);
   if (!a) return ir('#/alunos');
-  const p = periodo('mes', (/^\d{4}-\d{2}$/.test(params.get('m') || '') ? params.get('m') : hoje().slice(0, 7)) + '-01');
-  const mes = p.ini.slice(0, 7), chaveRecado = `${id}|${mes}`;
+  // "Desde o início" compara a primeira carga registrada de cada exercício com a atual.
+  const tudo = params.get('t') === 'tudo';
+  const mes = /^\d{4}-\d{2}$/.test(params.get('m') || '') ? params.get('m') : hoje().slice(0, 7);
+  const p = tudo ? { ini: '0000-01-01', fim: hoje() } : periodo('mes', mes + '-01');
+  const titulo = tudo ? `desde o início${a.inicio ? ` (${fmtData(a.inicio)})` : ''}` : fmtMes(mes);
+  const chaveRecado = `${id}|${tudo ? 'tudo' : mes}`;
   const ev = evolucaoNoMes(id, p);
   const troca = c => `${c.nome}: ${fmtKg(c.de)} → ${fmtKg(c.para)}`;
   const nota = r => `${r.area ? r.area + ': ' : ''}${r.texto}`;
@@ -1208,19 +1325,23 @@ function telaRelatorioAluno(id, params) {
     ['Outras anotações', '📝', outras],
     ['Cuidados no treino', '🩺', cuidados],
   ].filter(x => x[2].length);
-  const texto = recado => [`*Relatório de evolução – ${fmtMes(mes)}*`, `Aluno(a): ${a.nome}`,
+  const texto = recado => [`*Relatório de evolução – ${titulo}*`, `Aluno(a): ${a.nome}`,
     ...partes.flatMap(([t, e, l]) => ['', `${e} *${t}*`, ...l.map(x => `• ${x}`)]),
     ...(recado ? ['', `💬 ${recado}`] : []), ...(db.config.personal ? ['', db.config.personal] : []), '', ASSINATURA_WHATS].join('\n');
 
-  const html = `<div class="mes-nav nao-imprimir">
+  const html = `<div class="chips nao-imprimir">
+      <a class="chip ${tudo ? '' : 'on'}" href="#/evolucao/${id}">Do mês</a>
+      <a class="chip ${tudo ? 'on' : ''}" href="#/evolucao/${id}?t=tudo">Desde o início</a>
+    </div>
+    ${tudo ? '' : `<div class="mes-nav nao-imprimir">
       <button class="btn-icone" data-ir="#/evolucao/${id}?m=${somaMes(mes, -1)}" aria-label="Mês anterior">‹</button>
       <h2>${fmtMes(mes)}</h2>
       <button class="btn-icone" data-ir="#/evolucao/${id}?m=${somaMes(mes, 1)}" aria-label="Próximo mês">›</button>
-    </div>
+    </div>`}
     <div class="relatorio">
-      <div class="rel-cab">${cabecalhoMarca()}<h2>Relatório de evolução</h2><p>${esc(a.nome)}</p><p>${fmtMes(mes)}</p></div>
+      <div class="rel-cab">${cabecalhoMarca()}<h2>Relatório de evolução</h2><p>${esc(a.nome)}</p><p>${titulo}</p></div>
       ${partes.length ? partes.map(([t, , l]) => `<h3>${t}</h3><ul>${l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')
-        : '<p class="sub centro">Nada registrado neste mês. Mude cargas na ficha de treino ou anote a evolução do aluno.</p>'}
+        : '<p class="sub centro">Nada registrado neste período. Mude cargas na ficha de treino ou anote a evolução do aluno.</p>'}
       <h3>Recado do personal</h3>
       <textarea id="recado" rows="3" placeholder="Escreva um recado para o aluno (opcional)">${esc(db.recados[chaveRecado] || '')}</textarea>
       ${db.config.personal ? `<p class="sub">${esc(db.config.personal)}</p>` : ''}
@@ -1228,13 +1349,14 @@ function telaRelatorioAluno(id, params) {
     </div>
     <a class="btn whats largo nao-imprimir" id="rel-whats" target="_blank" rel="noopener" href="#">Enviar relatório pelo WhatsApp</a>
     <button class="btn largo nao-imprimir" id="rel-pdf">Salvar em PDF ou imprimir</button>`;
-  render('Evolução do mês', html, { voltar: `/aluno/${id}/evolucao` });
+  render('Evolução do aluno', html, { voltar: `/aluno/${id}/evolucao` });
   const link = () => { $('#rel-whats').href = linkWhats(a.whatsapp, texto($('#recado').value.trim())); };
   $('#recado').oninput = e => {
     const v = e.target.value.trim();
+    link();
+    if (!podeEditar()) return;   // na demonstração o recado vai na mensagem, mas não fica guardado
     if (v) db.recados[chaveRecado] = v; else delete db.recados[chaveRecado];
     salvar();
-    link();
   };
   link();
   $('#rel-pdf').onclick = () => window.print();
@@ -1301,6 +1423,7 @@ function ligarCobrancas(raiz) {
 }
 
 function modalEditarCobranca(a, c) {
+  if (semLicenca()) return;
   const corpo = `${campo('Descrição', 'ref', c?.ref ?? 'Aula avulsa')}
     <div class="duas">
       ${campoValor('Valor (R$)', 'valor', c?.valor)}
@@ -1324,6 +1447,7 @@ function modalEditarCobranca(a, c) {
 }
 
 function modalPagamento(c) {
+  if (semLicenca()) return;
   const resta = falta(c);
   const corpo = `<p class="sub">${esc(aluno(c.alunoId).nome)} · ${esc(c.ref)} · falta ${fmtBRL(resta)}</p>
     <div class="duas">
@@ -1392,6 +1516,7 @@ function modalCobranca(c) {
   const m = abrirModal(a.nome, corpo, [
     {
       texto: 'Excluir', classe: 'perigo-texto esq', acao: () => {
+        if (semLicenca()) return false;
         if (c.pagamentos.length) { toast('Apague os pagamentos desta cobrança antes de excluir'); return false; }
         confirmar('Excluir esta cobrança?', 'Excluir cobrança', () => {
           // As cobranças do plano ficam guardadas como canceladas para o app não criar de novo.
@@ -1406,8 +1531,8 @@ function modalCobranca(c) {
   ]);
   const reabrir = () => { salvar(); rotear(); modalCobranca(c); };
   $('#cob-pagar', m)?.addEventListener('click', () => modalPagamento(c));
-  $('#cob-avisar', m)?.addEventListener('click', () => { c.avisadoEm = c.avisadoEm ? null : hoje(); reabrir(); });
-  $$('[data-apagar]', m).forEach(b => b.onclick = () => confirmar('Apagar este pagamento? O valor volta a ficar em aberto.', 'Apagar pagamento', () => {
+  $('#cob-avisar', m)?.addEventListener('click', () => { if (semLicenca()) return; c.avisadoEm = c.avisadoEm ? null : hoje(); reabrir(); });
+  $$('[data-apagar]', m).forEach(b => b.onclick = () => !semLicenca() && confirmar('Apagar este pagamento? O valor volta a ficar em aberto.', 'Apagar pagamento', () => {
     c.pagamentos = c.pagamentos.filter(p => p.id !== b.dataset.apagar);
     reabrir();
   }));
@@ -1425,6 +1550,7 @@ function modalCobranca(c) {
 }
 
 function modalDespesa(d) {
+  if (semLicenca()) return;
   const corpo = `${campo('Descrição', 'descricao', d?.descricao, 'text', 'placeholder="Ex.: aluguel da sala" autocomplete="off"')}
     <div class="duas">
       ${campoValor('Valor (R$)', 'valor', d?.valor)}
@@ -1463,6 +1589,7 @@ function telaFinanceiro(params) {
   const p = periodo('mes', mes + '-01'), r = resumo(p);
   let html = `<nav class="abas">${[['cob', 'Cobranças'], ['cal', 'Calendário'], ['desp', 'Despesas']].map(([k, t]) =>
       `<a href="${url({ aba: k === 'cob' ? '' : k, d: '' })}" class="${k === aba ? 'ativa' : ''}">${t}</a>`).join('')}</nav>
+    ${dica('financeiro', 'As cobranças nascem sozinhas do plano de cada aluno. Toque numa cobrança para ver o Pix, avisar pelo WhatsApp ou confirmar o pagamento. Nas abas ficam o <b>Calendário</b> de vencimentos e as <b>Despesas</b>.')}
     <div class="mes-nav">
       <button class="btn-icone" data-ir="${url({ m: somaMes(mes, -1), d: '' })}" aria-label="Mês anterior">‹</button>
       <h2>${fmtMes(mes)}</h2>
@@ -1619,7 +1746,8 @@ function telaRelatorios(params) {
   const tabela = (l, vazioTxt, comQtd) => l.length
     ? `<table class="contas">${l.map(x => `<tr><td>${esc(x.nome)}${comQtd ? ` <span class="sub">(${x.n})</span>` : ''}</td><td>${fmtBRL(x.total)}</td></tr>`).join('')}</table>`
     : `<p class="sub">${vazioTxt}</p>`;
-  const html = `<div class="chips nao-imprimir">${Object.entries(TIPOS_PERIODO).map(([k, t]) =>
+  const html = dica('relatorios', 'Escolha <b>Semanal</b>, <b>Mensal</b> ou <b>Anual</b> e use as setas para mudar o período. No fim da página dá para salvar em PDF, exportar para Excel ou mandar o resumo pelo WhatsApp.')
+    + `<div class="chips nao-imprimir">${Object.entries(TIPOS_PERIODO).map(([k, t]) =>
       `<a class="chip ${k === tipo ? 'on' : ''}" href="${url({ t: k === 'mes' ? '' : k })}">${t}</a>`).join('')}</div>
     <div class="mes-nav nao-imprimir">
       <button class="btn-icone" data-ir="${url({ r: moverPeriodo(p, -1).ini })}" aria-label="Período anterior">‹</button>
@@ -1694,9 +1822,11 @@ function telaConfig() {
     </form>
     <div class="cartao" id="cartao-licenca">
       <h3>Licença de uso</h3>
-      <p>${licenca.liberado ? 'Liberado' : 'Período de teste'} até <b>${fimDaLicenca()}</b>
-        (faltam ${tempoDeLicenca()}).</p>
-      ${caixaCodigo()}
+      <p>${{ demo: '<b>Demonstração.</b> Dá para ver o app todo, mas não para cadastrar nem alterar.',
+        vencida: `<b class="ruim">Venceu em ${fimDaLicenca()}.</b> Seus dados continuam guardados, só para ver.`,
+        relogio: 'Acerte a data e a hora do celular.' }[situacaoLicenca()]
+        || `Liberado até <b>${fimDaLicenca()}</b> (faltam ${tempoDeLicenca()}).`}</p>
+      ${botaoPedirCodigo()}${caixaCodigo()}
       <p class="legenda">Para renovar, envie o código do aparelho à EG Gamer X e cole aqui o código de liberação recebido.</p>
     </div>
     <div class="cartao">
@@ -1724,6 +1854,7 @@ function telaConfig() {
   render('Mais', html);
 
   const guardar = () => {
+    if (semLicenca()) return false;
     const d = lerForm($('#form-config'));
     if (d.senha && !/^\d{4}$/.test(d.senha)) { toast('A senha precisa ter exatamente 4 números'); return false; }
     Object.assign(c, d, { servicos: linhas(d.servicos).length ? linhas(d.servicos) : [...SERVICOS_PADRAO], mensagem: d.mensagem || MSG_PADRAO });
@@ -1751,7 +1882,7 @@ function telaConfig() {
   $('#mudar-marca').onclick = modalMarca;
   ligarCaixaCodigo($('#cartao-licenca'));
   $('#exportar').onclick = () => exportarBackup(() => { if (location.hash === '#/config') rotear(); });
-  $('#importar').onclick = () => abrirArquivo(texto => {
+  $('#importar').onclick = () => !semLicenca() && abrirArquivo(texto => {
     let obj;
     try { obj = JSON.parse(texto); } catch { toast('Arquivo inválido'); return; }
     const dados = obj?.dados || obj;
@@ -1785,7 +1916,7 @@ function travar() {
   if (!db.config.senha) return;
   const t = document.createElement('div');
   t.id = 'trava';
-  t.innerHTML = `<img class="logo-sobre" src="logo.webp" alt=""><h2>${NOME_APP}</h2><p class="sub">Digite sua senha</p>
+  t.innerHTML = `<img class="logo-sobre" src="${logoMarca()}" alt=""><h2>${esc(nomeMarca())}</h2><p class="sub">Digite sua senha</p>
     <input type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Senha">`;
   document.body.appendChild(t);
   const i = $('input', t);
@@ -1799,6 +1930,13 @@ function travar() {
 /* ---------- Dados de exemplo (fictícios, só para demonstração) ---------- */
 
 function carregarExemplo() {
+  if (semLicenca()) return;
+  montarExemplo();
+  toast('Dados de exemplo carregados');
+  ir('#/');
+}
+
+function montarExemplo() {
   const h = hoje();
   db.exemplo = true;
   const novoAluno = (nome, objetivo, horarios, servico, tipo, valor, desde) => {
@@ -1863,8 +2001,6 @@ function carregarExemplo() {
     { id: novoId(), data: somaDias(h, -40), valor: 240, categoria: 'Equipamentos', descricao: 'Elásticos e colchonete' },
   );
   salvar();
-  toast('Dados de exemplo carregados');
-  ir('#/');
 }
 
 /* ---------- Partida ---------- */
@@ -1872,7 +2008,6 @@ function carregarExemplo() {
 $('#btn-voltar').onclick = () => location.replace('#' + (rotaPai || '/'));
 $('#marca').onclick = modalMarca;
 window.addEventListener('hashchange', rotear);
-// Com o app aberto e parado na mesma tela, o bloqueio entra sozinho quando o tempo acaba.
-setInterval(() => { if (!$('#bloqueio') && situacaoLicenca() !== 'ok') conferirLicenca(); }, 20000);
+setInterval(() => { if (!$('#bloqueio') && situacaoLicenca() === 'relogio') conferirLicenca(); }, 20000);
 rotear();
 travar();

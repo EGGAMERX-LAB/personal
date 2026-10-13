@@ -117,6 +117,9 @@ img.avatar { object-fit: cover; padding: 0; }
 .cartao p { margin: 6px 0; }
 .cartao.destaque { border-color: var(--pri); background: var(--pri-claro); }
 .cartao.atencao { border-color: var(--ruim); background: var(--ruim-claro); }
+.cartao.dica { border-style: dashed; border-color: var(--prata); display: flex; align-items: center; gap: 12px; }
+.cartao.dica p { flex: 1; margin: 0; font-size: 14px; color: var(--sub); }
+.cartao.dica .btn { flex: none; min-height: 38px; }
 .cartao.atencao ul { margin: 6px 0 0; padding-left: 20px; }
 .secao {
   font-size: 14px; font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .05em;
