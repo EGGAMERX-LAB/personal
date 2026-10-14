@@ -2,13 +2,14 @@
 /* Personal Trainer — desenvolvido por EG Gamer X
    Versão de teste: tudo fica salvo só no aparelho (localStorage). Sem servidor e sem login. */
 
-const VERSAO_APP = '0.5 (teste)';
+const VERSAO_APP = '0.6 (teste)';
 const NOME_APP = 'Personal Trainer';
 const CHAVE = 'personal_trainer_v1';
-// Licença: sem código o app fica em modo demonstração (dá para ver tudo, mas não para cadastrar nem editar).
-// O código de liberação só a EG Gamer X gera (pasta Licencas, fora do app). Aqui fica só a chave pública,
+// Licença: o app funciona completo por DIAS_TESTE dias a partir da primeira abertura. Depois fica só para ver
+// (sem cadastrar nem editar) até receber um código de liberação, que só a EG Gamer X gera (pasta Licencas, fora do app). Aqui fica só a chave pública,
 // que confere o código mas não cria códigos.
 const APP_ID = 'personal-trainer';
+const DIAS_TESTE = 7;
 const WHATS_EG = '11988189664';   // WhatsApp da EG Gamer X (só números, com DDD) para o botão "Pedir código"; vazio = sem botão
 const CHAVE_LICENCA = 'personal_trainer_licenca';
 const CHAVE_DICAS = 'personal_trainer_dicas';
@@ -185,6 +186,9 @@ function carregarLicenca() {
     const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const s = [...crypto.getRandomValues(new Uint8Array(8))].map(b => letras[b % 32]).join('');
     l = { id: `${s.slice(0, 4)}-${s.slice(4)}`, ate: 0, visto: Date.now(), liberado: false };
+  }
+  if (typeof l.testeAte !== 'number') {
+    l.testeAte = Date.now() + DIAS_TESTE * 864e5;
     localStorage.setItem(CHAVE_LICENCA, JSON.stringify(l));
   }
   return l;
@@ -192,24 +196,27 @@ function carregarLicenca() {
 let licenca = carregarLicenca();
 function salvarLicenca() { localStorage.setItem(CHAVE_LICENCA, JSON.stringify(licenca)); }
 
-// 'ok' (código válido), 'demo' (nunca liberado), 'vencida' ou 'relogio' (o relógio do celular foi voltado
-// para ganhar mais tempo; tolera 10 minutos).
+// 'ok' (código válido), 'teste' (dentro dos dias grátis), 'demo' (teste acabou e nunca foi liberado),
+// 'vencida' ou 'relogio' (o relógio do celular foi voltado para ganhar mais tempo; tolera 10 minutos).
 function situacaoLicenca() {
   const agora = Date.now();
   if (agora < licenca.visto - 6e5) return 'relogio';
   if (agora > licenca.visto) { licenca.visto = agora; salvarLicenca(); }
-  if (!licenca.liberado) return 'demo';
+  if (!licenca.liberado) return agora <= licenca.testeAte ? 'teste' : 'demo';
   return agora > licenca.ate ? 'vencida' : 'ok';
 }
-const podeEditar = () => situacaoLicenca() === 'ok';
+const podeEditar = () => ['ok', 'teste'].includes(situacaoLicenca());
 function fmtMomento(ms) {
   const d = new Date(ms);
   return `${fmtData(isoLocal(d))} às ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 // O código libera até o fim do dia que vem nele.
 function fimDaLicenca() { return fmtData(isoLocal(new Date(licenca.ate - 1))); }
+// Fim do período em uso agora: o do código ou o do teste grátis.
+const fimAtual = () => (licenca.liberado ? licenca.ate : licenca.testeAte);
+function fimDoTeste() { return fmtMomento(licenca.testeAte); }
 function tempoDeLicenca() {
-  const min = Math.max(0, Math.ceil((licenca.ate - Date.now()) / 6e4));
+  const min = Math.max(0, Math.ceil((fimAtual() - Date.now()) / 6e4));
   if (min < 60) return plural(min, 'minuto', 'minutos');
   if (min < 1440) return plural(Math.ceil(min / 60), 'hora', 'horas');
   return plural(Math.ceil(min / 1440), 'dia', 'dias');
@@ -267,20 +274,20 @@ function botaoPedirCodigo() {
 // Chamado antes de qualquer cadastro ou alteração. Sem licença válida, mostra o pedido de código e devolve true.
 function semLicenca() {
   const s = situacaoLicenca();
-  if (s === 'ok') return false;
-  const m = abrirModal(s === 'vencida' ? 'Sua licença venceu' : 'Versão de demonstração',
+  if (s === 'ok' || s === 'teste') return false;
+  const m = abrirModal(s === 'vencida' ? 'Sua licença venceu' : 'Seu teste grátis terminou',
     `<p>${s === 'vencida'
       ? `Sua licença terminou em ${fimDaLicenca()}. Seus dados continuam guardados e você pode ver tudo, mas para cadastrar ou alterar é preciso renovar.`
-      : 'Você pode ver o app inteiro com os dados de exemplo. Para cadastrar seus alunos, treinos e pagamentos, é preciso liberar o app.'}</p>
+      : `Os ${DIAS_TESTE} dias grátis terminaram em ${fimDoTeste()}. Você continua vendo o app e os seus dados, mas para cadastrar ou alterar é preciso liberar.`}</p>
     <p>Envie o código do aparelho à <b>EG Gamer X</b> e cole aqui o código de liberação que você receber.</p>
     ${botaoPedirCodigo()}${caixaCodigo()}`, [{ texto: 'Fechar' }]);
   ligarCaixaCodigo(m);
   return true;
 }
 
-// Sem licença e sem nenhum dado: carrega os exemplos para a pessoa ver o app funcionando.
+// Teste acabou, sem licença e sem nenhum dado: carrega os exemplos para a pessoa ver o app funcionando.
 function prepararDemonstracao() {
-  if (!licenca.liberado && !db.alunos.length) montarExemplo();
+  if (situacaoLicenca() === 'demo' && !db.alunos.length) montarExemplo();
 }
 
 // O relógio voltado é o único caso em que o app fica coberto; nos outros ele abre em modo de leitura.
@@ -775,9 +782,13 @@ function telaInicio() {
     <p class="data-hoje">${SEMANA[new Date().getDay()]}, ${fmtData(h)}</p>
   </section>${avisoInstalar()}`;
   const lic = situacaoLicenca();
-  if (lic === 'demo') {
-    html += `<div class="cartao destaque"><p><b>Você está na demonstração.</b> Os alunos e valores são exemplos, para você
-      conhecer o app. Para cadastrar os seus, é preciso liberar o app.</p>
+  if (lic === 'teste') {
+    html += `<div class="cartao destaque"><p><b>Teste grátis: faltam ${tempoDeLicenca()}</b> (até ${fimDoTeste()}).
+      Use à vontade. Para continuar depois disso, é só pedir o código de liberação.</p>
+      <button class="btn" data-ir="#/config">Ver código do aparelho</button></div>`;
+  } else if (lic === 'demo') {
+    html += `<div class="cartao atencao"><p><b>Seu teste grátis terminou.</b> ${db.exemplo ? 'Os alunos e valores que aparecem são exemplos.'
+      : 'Você continua vendo seus dados.'} Para cadastrar ou alterar, é preciso liberar o app.</p>
       <button class="btn primario" id="btn-liberar">Liberar o app</button></div>`;
   } else if (lic === 'vencida') {
     html += `<div class="cartao atencao"><p><b>Sua licença venceu em ${fimDaLicenca()}.</b> Você continua vendo seus dados,
@@ -814,7 +825,7 @@ function telaInicio() {
     return;
   }
 
-  if (db.exemplo && lic === 'ok') {
+  if (db.exemplo && podeEditar()) {
     html += `<div class="cartao destaque"><p><b>Você está vendo dados de exemplo.</b> Os alunos e valores são fictícios, só para demonstração.</p>
       <button class="btn" id="apagar-exemplo">Apagar exemplos e começar</button></div>`;
   }
@@ -851,12 +862,12 @@ function telaInicio() {
       <button class="atalho" id="at-aula"><span class="ic">${IC.aula}</span>Aula dada</button>
     </div>`;
 
-  if (lic === 'ok' && !pixPronto()) {
+  if (podeEditar() && !pixPronto()) {
     html += `<div class="cartao destaque" style="margin-top:16px">
       <p><b>Cadastre sua chave Pix</b> para gerar o QR Code e o Pix copia e cola das cobranças.</p>
       <button class="btn primario" data-ir="#/config">Cadastrar chave Pix</button></div>`;
   }
-  if (lic === 'ok' && !db.exemplo && (!c.ultimoBackup || somaDias(c.ultimoBackup, 7) < h)) {
+  if (podeEditar() && !db.exemplo && (!c.ultimoBackup || somaDias(c.ultimoBackup, 7) < h)) {
     html += `<div class="cartao destaque" style="margin-top:16px">
       <p><b>Faça um backup.</b> Seus dados ficam só neste celular.
       ${c.ultimoBackup ? `Último backup em ${fmtData(c.ultimoBackup)}.` : 'Você ainda não fez nenhum backup.'}</p>
@@ -1892,7 +1903,8 @@ function telaConfig() {
     </form>
     <div class="cartao" id="cartao-licenca">
       <h3>Licença de uso</h3>
-      <p>${{ demo: '<b>Demonstração.</b> Dá para ver o app todo, mas não para cadastrar nem alterar.',
+      <p>${{ teste: `<b>Teste grátis</b> até ${fimDoTeste()} (faltam ${tempoDeLicenca()}).`,
+        demo: `<b class="ruim">O teste grátis terminou em ${fimDoTeste()}.</b> Dá para ver o app, mas não para cadastrar nem alterar.`,
         vencida: `<b class="ruim">Venceu em ${fimDaLicenca()}.</b> Seus dados continuam guardados, só para ver.`,
         relogio: 'Acerte a data e a hora do celular.' }[situacaoLicenca()]
         || `Liberado até <b>${fimDaLicenca()}</b> (faltam ${tempoDeLicenca()}).`}</p>
