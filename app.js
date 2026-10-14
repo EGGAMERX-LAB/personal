@@ -2,7 +2,7 @@
 /* Personal Trainer — desenvolvido por EG Gamer X
    Versão de teste: tudo fica salvo só no aparelho (localStorage). Sem servidor e sem login. */
 
-const VERSAO_APP = '0.4.1 (teste)';
+const VERSAO_APP = '0.5 (teste)';
 const NOME_APP = 'Personal Trainer';
 const CHAVE = 'personal_trainer_v1';
 // Licença: sem código o app fica em modo demonstração (dá para ver tudo, mas não para cadastrar nem editar).
@@ -23,7 +23,7 @@ const TIPOS_OBS = ['Lesão', 'Fratura', 'Cirurgia', 'Em recuperação', 'Restri�
 const TIPOS_REGISTRO = { melhora: 'Melhorou', parado: 'Não evoluiu', observacao: 'Observação' };
 const COR_REGISTRO = { melhora: 'bom', parado: 'ruim', observacao: 'neutro' };
 const TIPOS_CHAVE = { cpf: 'CPF ou CNPJ', celular: 'Celular', email: 'E-mail', aleatoria: 'Chave aleatória' };
-const PLANOS = { '': 'Sem plano', mensal: 'Mensal', quinzenal: 'Quinzenal', semanal: 'Semanal' };
+const PLANOS = { '': 'Sem plano', aula: 'Por aula', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
 const STATUS_ALUNO = { ativo: 'Ativo', inativo: 'Inativo', cancelado: 'Cancelado' };
 const FORMAS = ['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito', 'Transferência', 'Outro'];
 const CATEGORIAS = ['Aluguel de espaço', 'Transporte', 'Equipamentos', 'Cursos', 'Divulgação', 'Impostos e taxas', 'Outros'];
@@ -67,6 +67,7 @@ const IC = {
   receber: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>',
   despesa: '<svg viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M4 4h16"/></svg>',
   grafico: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  aula: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8.5 15.5l2.5 2.5 4.5-5"/></svg>',
 };
 
 /* ---------- Dados ---------- */
@@ -787,7 +788,7 @@ function telaInicio() {
       Peça o código de liberação para continuar usando.</p>
       <button class="btn" data-ir="#/config">Ver código do aparelho</button></div>`;
   }
-  html += dica('inicio', 'Aqui é o seu painel: quanto entrou, quanto falta receber e quem está atrasado. Os quatro botões redondos são os atalhos do dia a dia.');
+  html += dica('inicio', 'Aqui é o seu painel: quanto entrou, quanto falta receber e quem está atrasado. Os botões redondos são os atalhos do dia a dia; em <b>Aula dada</b> você lança a aula de quem paga por aula.');
   const ligarInstalar = () => {
     $('#btn-liberar')?.addEventListener('click', semLicenca);
     $('#btn-instalar')?.addEventListener('click', () => {
@@ -847,7 +848,7 @@ function telaInicio() {
       <button class="atalho" id="at-aluno"><span class="ic">${IC.aluno}</span>Novo aluno</button>
       <a class="atalho" href="#/financeiro"><span class="ic">${IC.receber}</span>Receber</a>
       <button class="atalho" id="at-despesa"><span class="ic">${IC.despesa}</span>Despesa</button>
-      <a class="atalho" href="#/relatorios"><span class="ic">${IC.grafico}</span>Relatórios</a>
+      <button class="atalho" id="at-aula"><span class="ic">${IC.aula}</span>Aula dada</button>
     </div>`;
 
   if (lic === 'ok' && !pixPronto()) {
@@ -885,6 +886,7 @@ function telaInicio() {
   render(nomeMarca(), html);
   $('#at-aluno').onclick = () => modalAluno();
   $('#at-despesa').onclick = () => modalDespesa();
+  $('#at-aula').onclick = () => modalAula();
   $('#apagar-exemplo')?.addEventListener('click', () => confirmar('Apagar todos os dados de exemplo? Sua chave Pix e seus dados em "Mais" continuam.', 'Apagar exemplos', () => {
     limparExemplos();
     ir('#/');
@@ -943,10 +945,11 @@ function modalAluno(a) {
     ${campoSelect('Serviço contratado', 'servico', [['', '—'], ...servicos], a?.servico)}
     <div class="duas">
       ${campoSelect('Pagamento', 'planoTipo', Object.entries(PLANOS), p.tipo)}
-      ${campoValor('Valor do plano (R$)', 'planoValor', p.valor)}
+      ${campoValor('Valor (R$)', 'planoValor', p.valor)}
     </div>
     ${campo('Primeiro vencimento', 'planoDesde', p.desde ?? hoje(), 'date')}
-    <p class="legenda">A partir dessa data o app cria as cobranças sozinho: todo mês no mesmo dia, a cada 14 dias ou a cada 7 dias.</p>
+    <p class="legenda"><b>Por aula:</b> o valor é de cada aula e a cobrança nasce quando você registra a aula dada (o vencimento não é usado).
+      <b>Semanal, quinzenal e mensal:</b> a partir do primeiro vencimento o app cria as cobranças sozinho.</p>
     ${a ? campoSelect('Situação', 'status', Object.entries(STATUS_ALUNO), a.status) : ''}`;
   const botoes = [{ texto: 'Cancelar' }, {
     texto: 'Salvar', classe: 'primario', acao: m => {
@@ -954,7 +957,7 @@ function modalAluno(a) {
       if (!d.nome) { toast('Digite o nome do aluno'); return false; }
       const valor = lerNumero(d.planoValor);
       if (d.planoTipo && !(valor > 0)) { toast('Digite o valor do plano'); return false; }
-      if (d.planoTipo && !d.planoDesde) { toast('Escolha a data do primeiro vencimento'); return false; }
+      if (d.planoTipo && d.planoTipo !== 'aula' && !d.planoDesde) { toast('Escolha a data do primeiro vencimento'); return false; }
       const novo = !a;
       if (novo) { a = { id: novoId(), status: 'ativo' }; db.alunos.push(a); }
       Object.assign(a, {
@@ -1403,7 +1406,7 @@ function garantirCobrancas() {
   let mudou = false;
   for (const a of db.alunos) {
     const p = a.plano;
-    if (a.status !== 'ativo' || !p?.tipo || !(p.valor > 0) || !p.desde) continue;
+    if (a.status !== 'ativo' || !p?.tipo || p.tipo === 'aula' || !(p.valor > 0) || !p.desde) continue;
     const mensal = p.tipo === 'mensal', passo = p.tipo === 'quinzenal' ? 14 : 7;
     const limite = mensal ? ultimoDia(h.slice(0, 7)) : somaDias(segundaDe(h), 6);
     for (let n = 0; n < 2000; n++) {
@@ -1575,6 +1578,42 @@ function modalCobranca(c) {
   });
 }
 
+function modalAula(a) {
+  if (semLicenca()) return;
+  const ativos = db.alunos.filter(x => x.status === 'ativo').sort((x, y) =>
+    ((y.plano?.tipo === 'aula') - (x.plano?.tipo === 'aula')) || porNome(x, y));
+  if (!a && !ativos.length) { toast('Cadastre um aluno primeiro'); return; }
+  const valorDe = x => (x?.plano?.tipo === 'aula' ? x.plano.valor : 0);
+  const corpo = `${a ? `<p class="sub">${esc(a.nome)}</p>` : campoSelect('Aluno', 'aluno', ativos.map(x => [x.id, x.nome + (x.plano?.tipo === 'aula' ? ' · por aula' : '')]))}
+    <div class="duas">
+      ${campo('Data da aula', 'data', hoje(), 'date')}
+      ${campoValor('Valor da aula (R$)', 'valor', valorDe(a || ativos[0]))}
+    </div>
+    ${campoMarcar('O aluno já pagou esta aula', 'pago', false)}
+    <div id="aula-forma" hidden>${campoSelect('Forma de pagamento', 'forma', FORMAS, db.config.ultimaForma)}</div>
+    <p class="legenda">A aula entra como cobrança no dia dela. Se ele pagar depois, é só confirmar o pagamento no Financeiro.</p>`;
+  const m = abrirModal('Aula dada', corpo, [{ texto: 'Cancelar' }, {
+    texto: 'Salvar', classe: 'primario', acao: modal => {
+      const d = lerForm(modal), valor = lerNumero(d.valor), al = a || aluno(d.aluno);
+      if (!(valor > 0)) { toast('Digite o valor da aula'); return false; }
+      if (!d.data) { toast('Escolha a data da aula'); return false; }
+      if (d.pago && d.data > hoje()) { toast('Uma aula futura ainda não pode estar paga'); return false; }
+      const c = { id: novoId(), alunoId: al.id, chave: null, ref: `Aula de ${fmtData(d.data)}`, valor: arred(valor), desconto: 0,
+        venc: d.data, avisadoEm: null, cancelada: false, pagamentos: [] };
+      if (d.pago) {
+        c.pagamentos.push({ id: novoId(), data: d.data, valor: c.valor, forma: d.forma, obs: '' });
+        db.config.ultimaForma = d.forma;
+      }
+      db.cobrancas.push(c);
+      salvar();
+      toast(d.pago ? 'Aula registrada e paga' : 'Aula registrada');
+      rotear();
+    },
+  }]);
+  $('[name=pago]', m).onchange = e => { $('#aula-forma', m).hidden = !e.target.checked; };
+  $('[name=aluno]', m)?.addEventListener('change', e => { $('[name=valor]', m).value = emReais(valorDe(aluno(e.target.value))); });
+}
+
 function modalDespesa(d) {
   if (semLicenca()) return;
   const corpo = `${campo('Descrição', 'descricao', d?.descricao, 'text', 'placeholder="Ex.: aluguel da sala" autocomplete="off"')}
@@ -1713,8 +1752,12 @@ function abaFinanceiro(a, alvo) {
     </div>
     <div class="cartao">
       <h3>Plano</h3>
-      <p>${a.servico ? `${esc(a.servico)} · ` : ''}${p.tipo ? `<b>${PLANOS[p.tipo]}</b> · ${fmtBRL(p.valor)} · primeiro vencimento em ${fmtData(p.desde)}` : 'Sem plano cadastrado.'}</p>
+      <p>${a.servico ? `${esc(a.servico)} · ` : ''}${!p.tipo ? 'Sem plano cadastrado.' : p.tipo === 'aula'
+        ? `<b>Por aula</b> · ${fmtBRL(p.valor)} cada aula`
+        : `<b>${PLANOS[p.tipo]}</b> · ${fmtBRL(p.valor)} · primeiro vencimento em ${fmtData(p.desde)}`}</p>
+      ${p.tipo === 'aula' ? '<button class="btn primario largo" id="aula-dada">+ Registrar aula dada</button>' : ''}
       <div class="linha-botoes"><button class="btn" id="alterar-plano">${p.tipo ? 'Alterar plano' : 'Cadastrar plano'}</button>
+        ${p.tipo === 'aula' ? '' : '<button class="btn" id="aula-dada">+ Aula avulsa</button>'}
         <button class="btn" id="nova-cob">+ Cobrança avulsa</button></div>
     </div>
     <h3 class="secao">Cobranças</h3>`
@@ -1723,6 +1766,7 @@ function abaFinanceiro(a, alvo) {
     + (pags.length ? `<div class="lista">${pags.map(x => itemPagamento(x, false)).join('')}</div>` : vazio('Nenhum pagamento registrado.'));
   $('#alterar-plano').onclick = () => modalAluno(a);
   $('#nova-cob').onclick = () => modalEditarCobranca(a);
+  $('#aula-dada').onclick = () => modalAula(a);
   ligarCobrancas(alvo);
 }
 
@@ -1978,6 +2022,7 @@ function montarExemplo() {
   const diego = novoAluno('Diego Martins (exemplo)', 'Ganhar massa', 'ter e qui às 19h', 'Personal presencial', 'mensal', 320, somaDias(h, -57));
   const marta = novoAluno('Marta Nogueira (exemplo)', 'Qualidade de vida', 'sáb às 9h', 'Aula em dupla', 'semanal', 70, somaDias(h, -30));
   const paulo = novoAluno('Paulo Reis (exemplo)', 'Correr 10 km', 'online', 'Consultoria online', 'mensal', 150, somaDias(h, -85));
+  const lucas = novoAluno('Lucas Andrade (exemplo)', 'Condicionamento', 'quando pode', 'Aula avulsa', 'aula', 90, '');
 
   db.fichas.push(
     { id: novoId(), alunoId: bruna.id, nome: 'Treino A', nivel: 'Iniciante', obs: 'Pernas e glúteos. Aquecer 10 min na esteira.', exercicios: [
@@ -2018,6 +2063,11 @@ function montarExemplo() {
   // Cobranças antigas já pagas (em formas diferentes), uma paga pela metade e as mais recentes em aberto.
   db.cobrancas.filter(c => c.venc < somaDias(h, -6)).forEach((c, i) => {
     c.pagamentos.push({ id: novoId(), data: somaDias(c.venc, i % 3), valor: c.valor, forma: FORMAS[i % 3 === 2 ? 1 : 0], obs: '' });
+  });
+  [[-12, true], [-8, true], [-5, true], [-1, false]].forEach(([dias, pago]) => {
+    const venc = somaDias(h, dias);
+    db.cobrancas.push({ id: novoId(), alunoId: lucas.id, chave: null, ref: `Aula de ${fmtData(venc)}`, valor: 90, desconto: 0, venc,
+      avisadoEm: null, cancelada: false, pagamentos: pago ? [{ id: novoId(), data: venc, valor: 90, forma: 'Pix', obs: '' }] : [] });
   });
   const aberta = db.cobrancas.find(c => c.alunoId === diego.id && !c.pagamentos.length);
   if (aberta) aberta.pagamentos.push({ id: novoId(), data: somaDias(h, -1), valor: 120, forma: 'Dinheiro', obs: 'Pagou uma parte' });
